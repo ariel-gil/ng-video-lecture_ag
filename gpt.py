@@ -3,12 +3,18 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # hyperparameters
-batch_size = 64 # how many independent sequences will we process in parallel?
+batch_size = 32 # how many independent sequences will we process in parallel?
 block_size = 256 # what is the maximum context length for predictions?
 max_iters = 5000
 eval_interval = 500
 learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+print(f"Using device: {device}")  # Add this line after setting the device
+if device == 'cuda':
+    print(f"CUDA device name: {torch.cuda.get_device_name(0)}")  # Add this line to print the CUDA device name
+
+
 eval_iters = 200
 n_embd = 384
 n_head = 6
@@ -39,7 +45,7 @@ val_data = data[n:]
 
 # data loading
 def get_batch(split):
-    # generate a small batch of data of inputs x and targets y
+    # generate a small batch of data of inputs x and targets y (some additional stuff for parallelizing)
     data = train_data if split == 'train' else val_data
     ix = torch.randint(len(data) - block_size, (batch_size,))
     x = torch.stack([data[i:i+block_size] for i in ix])
@@ -204,6 +210,9 @@ print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 for iter in range(max_iters):
+    if iter == 0:
+        print("Starting training...")  # Add this line to indicate the start of training
+    # ...
 
     # every once in a while evaluate the loss on train and val sets
     if iter % eval_interval == 0 or iter == max_iters - 1:
@@ -223,3 +232,5 @@ for iter in range(max_iters):
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
 print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
 #open('more.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
+
+
